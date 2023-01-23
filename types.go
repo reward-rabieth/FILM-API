@@ -6,11 +6,9 @@ import (
 )
 
 type APIServer struct {
-	ListenAddress string
-	store         Storage
+	Store        Storage
+	listenadress string
 }
-
-//const Url = "https://swapi.dev"
 
 type Film struct {
 	Title        string    `json:"title"`
@@ -72,16 +70,16 @@ type CommentFilm struct {
 }
 
 type CreateCommentRequest struct {
-	Text      string `json:"text"`
-	IpAddress string `json:"ip_address"`
-	//CreatedAt time.Time `json:"created_at"`
+	Text      string    `json:"text"`
+	IpAddress string    `json:"ip_address"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Comment struct {
 	Text      string    `json:"text"`
 	IpAddress string    `json:"ip_address"`
 	CreatedAt time.Time `json:"created_at"`
-	//Result    Film      `json:"results"`
+	//Result    Film      `json:"results"`S
 }
 
 func NewComment(text, ipaddress string) *Comment {

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -18,9 +19,12 @@ type PostgresStore struct {
 	db *sql.DB
 }
 
-func NewPostgresStore() (*PostgresStore, error) {
+func NewPostgresStore(cfg DBconfig) (*PostgresStore, error) {
 
-	constr := "user=postgres dbname=postgres password=2981 sslmode=disable"
+	//constr := "dbuser=postgres dbname=postgres password=2981 sslmode=disable"
+
+	constr := fmt.Sprintf("user=%s dbname=%s password=%s sslmode=%s", cfg.User, cfg.Name, cfg.Password, cfg.SSLMode)
+
 	db, err := sql.Open("postgres", constr)
 	if err != nil {
 		return nil, err
@@ -49,17 +53,19 @@ func (s *PostgresStore) CreateCommentTable() error {
 	_, err := s.db.Exec(query)
 	return err
 }
+
 func (s *PostgresStore) CreateComment(com *Comment) error {
+
+	now := time.Now().Local()
+	com.CreatedAt = now
 
 	query := `insert into
 	 comment (text,ip_address,created_at)
      values($1,$2,$3)`
-	resp, err := s.db.Query(query, com.Text, com.IpAddress, com.CreatedAt)
+	_, err := s.db.Query(query, com.Text, com.IpAddress, com.CreatedAt)
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%v/n", resp)
 
 	return nil
 }

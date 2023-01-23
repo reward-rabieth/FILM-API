@@ -1,11 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 )
 
 func main() {
-	store, err := NewPostgresStore()
+	cfg := LoadConfig()
+	fmt.Println(cfg)
+
+	store, err := NewPostgresStore(cfg.Dbcfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -14,7 +18,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server := NewApiServer(":5000", store)
+	server := NewApiServer(cfg.Servercfg.Port, store)
+
 	server.Run()
 
 }

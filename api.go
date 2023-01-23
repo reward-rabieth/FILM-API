@@ -7,37 +7,41 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
 
 const testUrl = "https://swapi.dev/api/films/%d/?format=json"
 
-func NewApiServer(listenAddress string, store Storage) *APIServer {
+func NewApiServer(Listenadress string, store Storage) *APIServer {
 	return &APIServer{
-		ListenAddress: listenAddress,
-		store:         store,
+		listenadress: Listenadress,
+
+		Store: store,
 	}
 
 }
 
 func (s *APIServer) Run() {
-	router := mux.NewRouter()
-	router.HandleFunc("/films/{id}", MakeHttpHandleFunc(s.Getfilms))
-	router.HandleFunc("/films", MakeHttpHandleFunc(s.GetAllfilms))
-	router.HandleFunc("/characters", MakeHttpHandleFunc(s.GetCharacters))
-	router.HandleFunc("/films/{id}/characters", MakeHttpHandleFunc(s.GetCharactersByFilm))
-	router.HandleFunc("/comments", MakeHttpHandleFunc(s.HandleGetComments))
-	router.HandleFunc("/films/{id}/comments", MakeHttpHandleFunc(s.HandleComments))
 
-	log.Println("json api server is running on port:", s.ListenAddress)
-	http.ListenAndServe(s.ListenAddress, router)
+	router := mux.NewRouter()
+	router.HandleFunc("/films/{id}", MakeHttpHandleFunc(s.Getfilms)).Methods("GET")
+	router.HandleFunc("/films", MakeHttpHandleFunc(s.GetAllfilms)).Methods("GET")
+	router.HandleFunc("/characters", MakeHttpHandleFunc(s.GetCharacters)).Methods("GET")
+	router.HandleFunc("/films/{id}/characters", MakeHttpHandleFunc(s.GetCharactersByFilm))
+	router.HandleFunc("/comments", MakeHttpHandleFunc(s.HandleGetComments)).Methods("GET")
+	router.HandleFunc("/films/{id}/comments", MakeHttpHandleFunc(s.HandleComments))
+	addr := fmt.Sprintf(":%s", s.listenadress)
+	log.Println("json api server is running on port:", s.listenadress)
+
+	http.ListenAndServe(addr, router)
 
 }
 func WriteJson(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-type", "application/json")
 
-	w.WriteHeader(status)
+	//w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
 
 }
@@ -141,7 +145,7 @@ func (s *APIServer) GetCharacters(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	var characData Character
-	json.Unmarshal(respBody, &characData)
+	err = json.Unmarshal(respBody, &characData)
 	if err != nil {
 		return err
 	}
@@ -228,7 +232,7 @@ func GetCharactersById(w http.ResponseWriter, r *http.Request) error {
 func (s *APIServer) HandleComments(w http.ResponseWriter, r *http.Request) error {
 
 	if r.Method == "GET" {
-		return fmt.Errorf("permission denied")
+		return fmt.Errorf("method not allowed")
 	} else if r.Method == "POST" {
 		return s.HandleFilmComments(w, r)
 
@@ -241,7 +245,7 @@ func (s *APIServer) HandleComments(w http.ResponseWriter, r *http.Request) error
 }
 
 func (s *APIServer) HandleGetComments(w http.ResponseWriter, r *http.Request) error {
-	comment, err := s.store.Getcomments()
+	comment, err := s.Store.Getcomments()
 	if err != nil {
 		return err
 	}
@@ -279,14 +283,18 @@ func (s *APIServer) HandleFilmComments(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 	//var createCommentReq CreateCommentRequest
+	filmdata.Comment.IpAddress = r.RemoteAddr
+	filmdata.Comment.CreatedAt = time.Now()
 
 	comment := NewComment(filmdata.Comment.Text, filmdata.Comment.IpAddress)
 
-	if err := s.store.CreateComment(comment); err != nil {
+	if err := s.Store.CreateComment(comment); err != nil {
 		return err
 	}
 
-	fmt.Println(filmdata)
+	//fmt.Println(filmdata)
+	fmt.Println(r.RemoteAddr)
+
 	return WriteJson(w, http.StatusOK, filmdata)
 
 }
